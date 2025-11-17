@@ -1,0 +1,31 @@
+[package]
+name = "dioxus_style_macro"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+description = "Procedural macros for dioxus_style - internal use only"
+readme = "../README.md"
+keywords = ["dioxus", "css", "scoped", "macro", "procedural"]
+categories = ["web-programming", "development-tools::procedural-macro-helpers"]
+rust-version.workspace = true
+
+[lib]
+proc-macro = true
+
+[dependencies]
+lazy_static = "1.4"
+proc-macro2 = "1.0"
+quote = "1.0"
+syn = { version = "2.0", features = ["full", "extra-traits"] }
+xxhash-rust = { version = "0.8", features = ["xxh3"] }
+
+[dev-dependencies]
+# Add test dependencies here if needed
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
