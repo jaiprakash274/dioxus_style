@@ -1,0 +1,29 @@
+[package]
+name = "dioxus_style"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+description = "Scoped CSS styling system for Dioxus components with compile-time processing"
+readme = "../README.md"
+keywords = ["dioxus", "css", "scoped", "styling", "web"]
+categories = ["web-programming", "gui"]
+rust-version.workspace = true
+
+[dependencies]
+dioxus_style_macro = { version = "0.1.0", path = "../dioxus_style_macro" }
+lazy_static = "1.4"
+
+[dev-dependencies]
+# Add test dependencies here if needed
+
+[features]
+default = []
+hot-reload = []
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
