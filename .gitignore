@@ -1,0 +1,9 @@
+/target/
+**/*.rs.bk
+Cargo.lock  # For libraries
+.DS_Store
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
