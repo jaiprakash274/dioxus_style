@@ -17,7 +17,7 @@ pub fn scoped_style_impl(input: TokenStream) -> TokenStream {
         let file_path = css_content.clone();
 
         // Try to find the CSS file in common locations
-        let possible_paths = vec![
+        let possible_paths = [
             file_path.clone(),              // As specified
             format!("../{}", file_path),    // Parent directory
             format!("../../{}", file_path), // Two levels up

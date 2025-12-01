@@ -1,160 +1,355 @@
-# dioxus_style Examples
+# 🎨 Dioxus Style - Complete Selector Examples
 
-Complete examples showing different ways to use dioxus_style.
+## 📁 Project Structure
 
-## Table of Contents
-
-1. [Basic Usage](#basic-usage)
-2. [Component Styles](#component-styles)
-3. [Inline Styles](#inline-styles)
-4. [Complex Application](#complex-application)
-5. [Best Practices](#best-practices)
+```
+project/
+├── src/
+│   └── main.rs                          # Main application with all examples
+├── examples/
+│   ├── class_selectors.css              # .class examples
+│   ├── id_selectors.css                 # #id examples
+│   ├── element_selectors.css            # div, span, p examples
+│   ├── complex_selectors.css            # >, +, ~, space combinators
+│   ├── pseudo_classes.css               # :hover, :focus, :active
+│   ├── multiple_selectors.css           # Comma-separated selectors
+│   └── mixed_complex.css                # Everything combined
+└── Cargo.toml
+```
 
 ---
 
-## Basic Usage
+## 🚀 Quick Start
 
-### Simple Button Component
+```bash
+# Run the complete examples
+cargo run
 
-**button.css:**
+# The app will show all selector types in action!
+```
+
+---
+
+## 📋 Selector Support Table
+
+| Selector Type | Input | Output | Status |
+|--------------|-------|--------|--------|
+| **Class** | `.button` | `.sc_abc.button` | ✅ Full Support |
+| **ID** | `#header` | `#sc_abc_header` | ✅ Full Support |
+| **Element** | `div` | `div[data-scope="sc_abc"]` | ✅ Full Support |
+| **Pseudo-class** | `.btn:hover` | `.sc_abc.btn:hover` | ✅ Full Support |
+| **Child** | `.parent > .child` | `.sc_abc.parent > .sc_abc.child` | ✅ Full Support |
+| **Adjacent** | `.card + .card` | `.sc_abc.card + .sc_abc.card` | ✅ Full Support |
+| **Sibling** | `.box ~ .box` | `.sc_abc.box ~ .sc_abc.box` | ✅ Full Support |
+| **Descendant** | `.parent .child` | `.sc_abc.parent .sc_abc.child` | ✅ Full Support |
+| **Multiple** | `.a, .b, #c` | `.sc_abc.a, .sc_abc.b, #sc_abc_c` | ✅ Full Support |
+
+---
+
+## 📖 Example Breakdown
+
+### 1️⃣ Class Selectors (`.class`)
+
+**CSS File:** `examples/class_selectors.css`
+
 ```css
-.btn {
-    padding: 10px 20px;
-    border: none;
-    border-radius: 5px;
-    background: #007bff;
+.card {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+}
+
+.card-title {
+    font-size: 24px;
+    font-weight: bold;
+}
+
+.btn-primary {
+    background: #4299e1;
     color: white;
-    cursor: pointer;
-    font-size: 16px;
-    transition: background 0.3s;
-}
-
-.btn:hover {
-    background: #0056b3;
-}
-
-.btn:active {
-    transform: scale(0.98);
-}
-
-.btn-disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
 }
 ```
 
-**button.rs:**
+**Usage in Component:**
+
 ```rust
-use dioxus::prelude::*;
-use dioxus_style::with_css;
-
-#[derive(Props, Clone, PartialEq)]
-pub struct ButtonProps {
-    text: String,
-    disabled: bool,
-    on_click: EventHandler<MouseEvent>,
-}
-
-#[with_css("button.css")]
-pub fn Button(props: ButtonProps) -> Element {
-    let disabled_class = if props.disabled { 
-        format!(" {css}_btn-disabled") 
-    } else { 
-        String::new() 
-    };
-    
+#[with_css("examples/class_selectors.css")]
+fn ClassSelectorExample() -> Element {
     rsx! {
-        button {
-            class: "{css}_btn{disabled_class}",
-            disabled: props.disabled,
-            onclick: move |evt| props.on_click.call(evt),
-            "{props.text}"
+        div { class: "{css}_card",
+            h3 { class: "{css}_card-title", "Title" }
+            button { class: "{css}_btn {css}_btn-primary", "Click" }
         }
     }
+}
+```
+
+**Scoped Output:**
+```css
+.sc_abc123.card { background: white; ... }
+.sc_abc123.card-title { font-size: 24px; ... }
+.sc_abc123.btn-primary { background: #4299e1; ... }
+```
+
+---
+
+### 2️⃣ ID Selectors (`#id`)
+
+**CSS File:** `examples/id_selectors.css`
+
+```css
+#header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 20px;
+}
+
+#main-content {
+    border-left: 4px solid #4299e1;
 }
 ```
 
 **Usage:**
+
 ```rust
-rsx! {
-    Button {
-        text: "Click Me",
-        disabled: false,
-        on_click: |_| println!("Clicked!")
+#[with_css("examples/id_selectors.css")]
+fn IdSelectorExample() -> Element {
+    rsx! {
+        div { id: "{css}_header", "Header" }
+        div { id: "{css}_main-content", "Content" }
+    }
+}
+```
+
+**Scoped Output:**
+```css
+#sc_abc123_header { background: linear-gradient(...); }
+#sc_abc123_main-content { border-left: 4px solid #4299e1; }
+```
+
+---
+
+### 3️⃣ Element Selectors (`div`, `span`, `p`)
+
+**CSS File:** `examples/element_selectors.css`
+
+```css
+div {
+    background: #edf2f7;
+    padding: 15px;
+}
+
+p {
+    color: #2c5282;
+    line-height: 1.5;
+}
+
+span {
+    background: #fbd38d;
+    padding: 4px 8px;
+}
+```
+
+**Usage (⚠️ Important: Add `data-scope`):**
+
+```rust
+#[with_css("examples/element_selectors.css")]
+fn ElementSelectorExample() -> Element {
+    rsx! {
+        div { 
+            "data-scope": "{css.scope()}",  // ✅ Required!
+            "Styled div"
+            
+            p { 
+                "data-scope": "{css.scope()}",
+                "Styled paragraph"
+            }
+        }
+    }
+}
+```
+
+**Scoped Output:**
+```css
+div[data-scope="sc_abc123"] { background: #edf2f7; ... }
+p[data-scope="sc_abc123"] { color: #2c5282; ... }
+span[data-scope="sc_abc123"] { background: #fbd38d; ... }
+```
+
+---
+
+### 4️⃣ Complex Selectors (Combinators)
+
+**CSS File:** `examples/complex_selectors.css`
+
+```css
+/* Child combinator */
+.parent > .child {
+    background: #81e6d9;
+}
+
+/* Adjacent sibling */
+.card + .card {
+    margin-top: 20px;
+}
+
+/* Descendant */
+.container .item {
+    background: #feb2b2;
+}
+
+/* General sibling */
+.box ~ .box {
+    border-left: 4px solid #ecc94b;
+}
+```
+
+**Usage:**
+
+```rust
+#[with_css("examples/complex_selectors.css")]
+fn ComplexSelectorExample() -> Element {
+    rsx! {
+        // Child: parent > child
+        div { class: "{css}_parent",
+            div { class: "{css}_child", "Direct child" }
+        }
+        
+        // Adjacent sibling: .card + .card
+        div { class: "{css}_card", "Card 1" }
+        div { class: "{css}_card", "Card 2 (has margin)" }
+        
+        // Descendant: .container .item
+        div { class: "{css}_container",
+            div { class: "{css}_item", "Nested" }
+        }
+    }
+}
+```
+
+**Scoped Output:**
+```css
+.sc_abc123.parent > .sc_abc123.child { ... }
+.sc_abc123.card + .sc_abc123.card { ... }
+.sc_abc123.container .sc_abc123.item { ... }
+.sc_abc123.box ~ .sc_abc123.box { ... }
+```
+
+---
+
+### 5️⃣ Pseudo-classes (`:hover`, `:focus`, `:active`)
+
+**CSS File:** `examples/pseudo_classes.css`
+
+```css
+.hover-btn {
+    background: #9f7aea;
+}
+
+.hover-btn:hover {
+    background: #7c3aed;
+    transform: scale(1.05);
+}
+
+.focus-input:focus {
+    border-color: #4299e1;
+    box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.2);
+}
+
+.link:visited {
+    color: #805ad5;
+}
+```
+
+**Usage:**
+
+```rust
+#[with_css("examples/pseudo_classes.css")]
+fn PseudoClassExample() -> Element {
+    rsx! {
+        button { class: "{css}_hover-btn", "Hover me!" }
+        
+        input { 
+            class: "{css}_focus-input",
+            placeholder: "Focus me"
+        }
+        
+        a { 
+            class: "{css}_link",
+            href: "#",
+            "Link"
+        }
     }
 }
 ```
 
 ---
 
-## Component Styles
+### 6️⃣ Multiple Selectors (Comma-separated)
 
-### Card Component with Multiple Elements
+**CSS File:** `examples/multiple_selectors.css`
 
-**card.css:**
 ```css
-.card {
-    background: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    padding: 20px;
-    margin: 10px;
+/* Same style for multiple selectors */
+.btn,
+.button,
+.action {
+    background: #ed8936;
+    padding: 10px 20px;
 }
 
-.card-header {
-    font-size: 24px;
-    font-weight: bold;
-    margin-bottom: 10px;
-    color: #333;
-}
-
-.card-body {
-    font-size: 16px;
-    line-height: 1.6;
-    color: #666;
-}
-
-.card-footer {
-    margin-top: 15px;
-    padding-top: 15px;
-    border-top: 1px solid #eee;
-    display: flex;
-    justify-content: space-between;
-}
-
-.card:hover {
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    transform: translateY(-2px);
-    transition: all 0.3s;
+#header,
+#footer {
+    background: #2d3748;
+    color: white;
 }
 ```
 
-**card.rs:**
-```rust
-use dioxus::prelude::*;
-use dioxus_style::with_css;
+**Scoped Output:**
+```css
+.sc_abc123.btn, .sc_abc123.button, .sc_abc123.action { ... }
+#sc_abc123_header, #sc_abc123_footer { ... }
+```
 
-#[derive(Props, Clone, PartialEq)]
-pub struct CardProps {
-    title: String,
-    content: String,
-    footer: Option<String>,
+---
+
+### 7️⃣ Mixed Complex Example
+
+**CSS File:** `examples/mixed_complex.css`
+
+```css
+/* Super complex selector */
+div.container > .item#special {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    border: 3px solid #e53e3e;
 }
 
-#[with_css("card.css")]
-pub fn Card(props: CardProps) -> Element {
+/* Hover with combinators */
+.card:hover > .icon + span {
+    color: #4299e1;
+    font-weight: bold;
+}
+
+/* Element with class and pseudo */
+ul > li.active {
+    background: #4299e1;
+    color: white;
+}
+```
+
+**Usage:**
+
+```rust
+#[with_css("examples/mixed_complex.css")]
+fn MixedComplexExample() -> Element {
     rsx! {
-        div { class: "{css}_card",
-            div { class: "{css}_card-header",
-                "{props.title}"
-            }
-            div { class: "{css}_card-body",
-                "{props.content}"
-            }
-            if let Some(footer_text) = props.footer {
-                div { class: "{css}_card-footer",
-                    "{footer_text}"
-                }
+        div { 
+            "data-scope": "{css.scope()}",
+            class: "{css}_container",
+            
+            div { 
+                class: "{css}_item",
+                id: "{css}_special",
+                "Special item!"
             }
         }
     }
@@ -163,426 +358,102 @@ pub fn Card(props: CardProps) -> Element {
 
 ---
 
-## Inline Styles
-
-### Using css! Macro for Dynamic Styles
+### 8️⃣ Inline CSS (No file needed!)
 
 ```rust
-use dioxus::prelude::*;
-use dioxus_style::css;
-
-#[component]
-fn Badge(text: String, color: String) -> Element {
-    let badge_style = css!("
-        padding: 4px 8px;
-        border-radius: 12px;
-        font-size: 12px;
-        font-weight: bold;
+fn InlineCssExample() -> Element {
+    let style = css!("
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 20px;
+        border-radius: 10px;
     ");
     
     rsx! {
-        span {
-            class: "{badge_style}",
-            style: "background: {color}; color: white;",
-            "{text}"
-        }
-    }
-}
-
-#[component]
-fn StatusBadges() -> Element {
-    rsx! {
-        div {
-            Badge { text: "Active", color: "#28a745" }
-            Badge { text: "Pending", color: "#ffc107" }
-            Badge { text: "Inactive", color: "#dc3545" }
-        }
+        div { class: "{style}", "Inline styled!" }
     }
 }
 ```
 
 ---
 
-## Complex Application
+## ⚠️ Important Notes
 
-### Complete Todo App
+### 1. Element Selectors Require `data-scope`
 
-**app.css:**
-```css
-.app {
-    max-width: 600px;
-    margin: 50px auto;
-    font-family: 'Segoe UI', sans-serif;
-}
-
-.app-title {
-    text-align: center;
-    color: #333;
-    margin-bottom: 30px;
-}
-```
-
-**todo.css:**
-```css
-.todo-container {
-    background: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-}
-
-.todo-input-section {
-    padding: 20px;
-    border-bottom: 1px solid #eee;
-    display: flex;
-    gap: 10px;
-}
-
-.todo-input {
-    flex: 1;
-    padding: 10px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 16px;
-}
-
-.todo-add-btn {
-    padding: 10px 20px;
-    background: #007bff;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-}
-
-.todo-add-btn:hover {
-    background: #0056b3;
-}
-
-.todo-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-}
-
-.todo-item {
-    padding: 15px 20px;
-    border-bottom: 1px solid #eee;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.todo-item:hover {
-    background: #f8f9fa;
-}
-
-.todo-checkbox {
-    width: 20px;
-    height: 20px;
-    cursor: pointer;
-}
-
-.todo-text {
-    flex: 1;
-    font-size: 16px;
-}
-
-.todo-text-completed {
-    text-decoration: line-through;
-    color: #999;
-}
-
-.todo-delete-btn {
-    padding: 5px 10px;
-    background: #dc3545;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 14px;
-}
-
-.todo-delete-btn:hover {
-    background: #c82333;
-}
-```
-
-**main.rs:**
 ```rust
-use dioxus::prelude::*;
-use dioxus_style::{with_css, inject_styles};
+// ❌ Wrong - won't work
+div { "Content" }
 
-fn main() {
-    dioxus::launch(App);
+// ✅ Correct
+div { 
+    "data-scope": "{css.scope()}",
+    "Content"
 }
+```
 
-#[component]
-fn App() -> Element {
-    rsx! {
-        style { dangerous_inner_html: "{inject_styles()}" }
-        TodoApp {}
-    }
-}
+### 2. Class Names Need Scope Prefix
 
-#[derive(Clone, PartialEq)]
-struct Todo {
-    id: usize,
-    text: String,
-    completed: bool,
-}
+```rust
+// ❌ Wrong
+div { class: "button", "Click" }
 
-#[with_css("app.css")]
-fn TodoApp() -> Element {
-    let mut todos = use_signal(|| Vec::<Todo>::new());
-    let mut input = use_signal(|| String::new());
-    let mut next_id = use_signal(|| 0);
-    
-    let add_todo = move |_| {
-        if !input().is_empty() {
-            let new_todo = Todo {
-                id: next_id(),
-                text: input(),
-                completed: false,
-            };
-            todos.write().push(new_todo);
-            next_id += 1;
-            input.set(String::new());
-        }
-    };
-    
-    rsx! {
-        div { class: "{css}_app",
-            h1 { class: "{css}_app-title", "My Todo List" }
-            TodoContainer { 
-                todos: todos,
-                input: input,
-                on_add: add_todo
-            }
-        }
-    }
-}
+// ✅ Correct
+div { class: "{css}_button", "Click" }
+```
 
-#[derive(Props, Clone, PartialEq)]
-struct TodoContainerProps {
-    todos: Signal<Vec<Todo>>,
-    input: Signal<String>,
-    on_add: EventHandler<MouseEvent>,
-}
+### 3. ID Names Need Scope Prefix
 
-#[with_css("todo.css")]
-fn TodoContainer(props: TodoContainerProps) -> Element {
-    let todos = props.todos;
-    let input = props.input;
-    
-    let toggle_todo = move |id: usize| {
-        let mut todos_write = todos.write();
-        if let Some(todo) = todos_write.iter_mut().find(|t| t.id == id) {
-            todo.completed = !todo.completed;
-        }
-    };
-    
-    let delete_todo = move |id: usize| {
-        todos.write().retain(|t| t.id != id);
-    };
-    
-    rsx! {
-        div { class: "{css}_todo-container",
-            div { class: "{css}_todo-input-section",
-                input {
-                    class: "{css}_todo-input",
-                    r#type: "text",
-                    value: "{input}",
-                    placeholder: "Add a new todo...",
-                    oninput: move |evt| input.set(evt.value()),
-                    onkeypress: move |evt| {
-                        if evt.key() == Key::Enter {
-                            props.on_add.call(MouseEvent::default());
-                        }
-                    }
-                }
-                button {
-                    class: "{css}_todo-add-btn",
-                    onclick: move |evt| props.on_add.call(evt),
-                    "Add"
-                }
-            }
-            
-            ul { class: "{css}_todo-list",
-                for todo in todos.read().iter() {
-                    TodoItem {
-                        todo: todo.clone(),
-                        on_toggle: move |_| toggle_todo(todo.id),
-                        on_delete: move |_| delete_todo(todo.id)
-                    }
-                }
-            }
-        }
-    }
-}
+```rust
+// ❌ Wrong
+div { id: "header", "Header" }
 
-#[derive(Props, Clone, PartialEq)]
-struct TodoItemProps {
-    todo: Todo,
-    on_toggle: EventHandler<MouseEvent>,
-    on_delete: EventHandler<MouseEvent>,
-}
-
-#[with_css("todo.css")]
-fn TodoItem(props: TodoItemProps) -> Element {
-    let text_class = if props.todo.completed {
-        format!("{css}_todo-text {css}_todo-text-completed")
-    } else {
-        format!("{css}_todo-text")
-    };
-    
-    rsx! {
-        li { class: "{css}_todo-item",
-            input {
-                class: "{css}_todo-checkbox",
-                r#type: "checkbox",
-                checked: props.todo.completed,
-                onchange: move |evt| props.on_toggle.call(MouseEvent::default())
-            }
-            span { class: "{text_class}",
-                "{props.todo.text}"
-            }
-            button {
-                class: "{css}_todo-delete-btn",
-                onclick: move |evt| props.on_delete.call(evt),
-                "Delete"
-            }
-        }
-    }
-}
+// ✅ Correct
+div { id: "{css}_header", "Header" }
 ```
 
 ---
 
-## Best Practices
+## 🎯 Best Practices
 
-### 1. Component Organization
+1. **Use Classes for Styling** (most common, most flexible)
+2. **Use IDs for Unique Elements** (single instance per scope)
+3. **Avoid Element Selectors** (require data-scope, less flexible)
+4. **Leverage Pseudo-classes** (great for interactions)
+5. **Combine Wisely** (`.parent > .child` is powerful!)
 
-```
-src/
-├── components/
-│   ├── button/
-│   │   ├── mod.rs
-│   │   └── button.css
-│   ├── card/
-│   │   ├── mod.rs
-│   │   └── card.css
-│   └── layout/
-│       ├── mod.rs
-│       └── layout.css
-├── app.rs
-└── main.rs
-```
+---
 
-### 2. Naming Conventions
+## 🐛 Troubleshooting
 
-```css
-/* Use BEM-like naming for clarity */
-.component-name { }
-.component-name__element { }
-.component-name--modifier { }
+### Issue: Styles not applying
 
-/* Example */
-.card { }
-.card__header { }
-.card__body { }
-.card--featured { }
-```
+**Check:**
+1. ✅ CSS file path is correct
+2. ✅ Using `{css}_` prefix for classes
+3. ✅ Using `{css}_` prefix for IDs
+4. ✅ Added `data-scope` for element selectors
+5. ✅ `inject_styles()` in root App component
 
-### 3. Style Injection Pattern
+### Issue: Element selector not working
 
 ```rust
-// ✅ Good: Inject once at root
-#[component]
-fn App() -> Element {
-    rsx! {
-        style { dangerous_inner_html: "{inject_styles()}" }
-        Router::<Route> {}
-    }
-}
-
-// ❌ Avoid: Multiple injections
-#[component]
-fn Component() -> Element {
-    rsx! {
-        style { dangerous_inner_html: "{inject_styles()}" }  // Don't do this
-        div { "content" }
-    }
-}
-```
-
-### 4. CSS File Organization
-
-```css
-/* Group related styles */
-
-/* Base styles */
-.card {
-    background: white;
-    padding: 20px;
-}
-
-/* Element styles */
-.card-header { }
-.card-body { }
-.card-footer { }
-
-/* State modifiers */
-.card:hover { }
-.card--active { }
-.card--disabled { }
-
-/* Responsive */
-@media (max-width: 768px) {
-    .card {
-        padding: 10px;
-    }
-}
-```
-
-### 5. Performance Tips
-
-```rust
-// ✅ Good: Reuse style instances
-lazy_static! {
-    static ref BUTTON_STYLE: ScopedStyle = scoped_style!("button.css");
-}
-
-// ✅ Good: Use with_css for automatic management
-#[with_css("button.css")]
-fn Button() -> Element { }
-
-// ❌ Avoid: Creating styles in render
-fn Button() -> Element {
-    let css = scoped_style!("button.css");  // Already cached via lazy_static
+// Add data-scope attribute!
+div { 
+    "data-scope": "{css.scope()}",
     // ...
 }
 ```
 
 ---
 
-## Running Examples
+## 📚 More Resources
 
-```bash
-# Clone the repository
-git clone https://github.com/jaiprakash274/dioxus_style
-cd dioxus_style
-
-# Run examples (if you add an examples/ directory)
-cargo run --example todo
-cargo run --example button
-```
-
-## More Resources
-
-- [Main Documentation](README.md)
-- [API Reference](https://docs.rs/dioxus_style)
-- [Dioxus Documentation](https://dioxuslabs.com)
+- **Dioxus Docs:** https://dioxuslabs.com
+- **CSS Selectors Reference:** https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Selectors
 
 ---
 
-**Have more example ideas? Contribute them!** See [CONTRIBUTING.md](CONTRIBUTING.md)
+## 🎉 Ready to Style!
+
+Ab aapke paas **sabhi selector types** ke complete examples hain. Copy-paste karo aur enjoy karo! 🚀

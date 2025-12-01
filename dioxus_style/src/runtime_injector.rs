@@ -104,20 +104,6 @@ impl StyleRegistry {
     }
 }
 
-/// Injects all registered styles into a `<style>` tag.
-///
-/// # Example
-/// ```rust,ignore
-/// use dioxus::prelude::*;
-/// use dioxus_style::inject_styles;
-///
-/// fn App() -> Element {
-///     rsx! {
-///         style { dangerous_inner_html: "{inject_styles()}" }
-///         // Your components here
-///     }
-/// }
-/// ```
 #[inline]
 pub fn inject_styles() -> String {
     STYLE_REGISTRY

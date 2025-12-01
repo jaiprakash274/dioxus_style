@@ -14,7 +14,7 @@ categories = ["web-programming", "gui"]
 rust-version.workspace = true
 
 [dependencies]
-dioxus_style_macro = { version = "0.1.0", path = "../dioxus_style_macro" }
+dioxus_style_macro = { version = "0.2.0", path = "../dioxus_style_macro" }
 lazy_static = "1.4"
 
 [dev-dependencies]

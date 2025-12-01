@@ -23,22 +23,6 @@ pub fn css(input: TokenStream) -> TokenStream {
     macros::css_impl(input)
 }
 
-// ============================================
-// COMPONENT MACROS
-// ============================================
-
-/// Attribute macro with AUTOMATIC style injection!
-///
-/// # Usage
-/// ```rust
-/// #[with_css("card.css")]
-/// fn Card() -> Element {
-///     rsx! {
-///         // ✅ No manual inject_styles() needed!
-///         div { class: "{css}_card", "Hello" }
-///     }
-/// }
-/// ```
 #[proc_macro_attribute]
 pub fn with_css(attr: TokenStream, item: TokenStream) -> TokenStream {
     let css_file = parse_macro_input!(attr as LitStr);
@@ -98,19 +82,6 @@ pub fn with_css(attr: TokenStream, item: TokenStream) -> TokenStream {
     TokenStream::from(expanded)
 }
 
-/// Function-like macro version of with_css
-///
-/// # Usage
-/// ```rust
-/// component_with_css! {
-///     css: "button.css",
-///     fn Button() -> Element {
-///         rsx! {
-///             button { class: "{css}_btn", "Click" }
-///         }
-///     }
-/// }
-/// ```
 #[proc_macro]
 pub fn component_with_css(input: TokenStream) -> TokenStream {
     let input_str = input.to_string();

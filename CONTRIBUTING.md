@@ -50,7 +50,7 @@ We welcome feature suggestions! Please create an issue with:
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/dioxus_style.git
+git clone https://github.com/jaiprakash274/dioxus_style.git
 cd dioxus_style
 
 # Build all workspace members
@@ -106,6 +106,31 @@ dioxus_style/
 - Test edge cases and error conditions
 - Maintain existing test coverage
 
+#### Testing Scoping Behavior (v0.2.0+)
+
+When testing selector scoping, ensure you cover:
+
+```rust
+#[test]
+fn test_element_scoping() {
+    let css = "div { margin: 10px; }";
+    let scoped = parse_and_scope(css, "sc_test", false);
+    assert!(scoped.scoped.contains("div[data-scope=\"sc_test\"]"));
+}
+
+#[test]
+fn test_mixed_selector() {
+    let css = "div.container > span#label { color: red; }";
+    let scoped = parse_and_scope(css, "sc_test", false);
+    // Test element scoping
+    assert!(scoped.scoped.contains("div[data-scope=\"sc_test\"]"));
+    // Test class scoping
+    assert!(scoped.scoped.contains(".sc_test_container"));
+    // Test ID scoping
+    assert!(scoped.scoped.contains("#sc_test_label"));
+}
+```
+
 ### Performance
 
 - Profile changes that affect performance
@@ -125,10 +150,13 @@ cargo test --all
 cargo test -p dioxus_style_macro
 
 # Specific test
-cargo test test_generate_hash
+cargo test test_element_scoping
 
 # With output
 cargo test -- --nocapture
+
+# Run only style_parser tests
+cargo test -p dioxus_style_macro style_parser
 ```
 
 ### Writing Tests
@@ -171,6 +199,48 @@ cargo expand --package dioxus_style_macro
 - Use `quote!` carefully with proper escaping
 - Test both success and error cases
 
+### Testing Selector Scoping
+
+When modifying `style_parser.rs`, ensure all selector types are tested:
+
+```rust
+// Test class selectors
+#[test]
+fn test_class_selector() {
+    let css = ".button { color: red; }";
+    let scoped = parse_and_scope(css, "sc_test", false);
+    assert!(scoped.scoped.contains(".sc_test_button"));
+}
+
+// Test element selectors
+#[test]
+fn test_element_selector() {
+    let css = "div { padding: 10px; }";
+    let scoped = parse_and_scope(css, "sc_test", false);
+    assert!(scoped.scoped.contains("div[data-scope=\"sc_test\"]"));
+}
+
+// Test ID selectors
+#[test]
+fn test_id_selector() {
+    let css = "#header { font-size: 24px; }";
+    let scoped = parse_and_scope(css, "sc_test", false);
+    assert!(scoped.scoped.contains("#sc_test_header"));
+}
+
+// Test complex selectors
+#[test]
+fn test_complex_selector() {
+    let css = "div.parent > span + .child { margin: 5px; }";
+    let scoped = parse_and_scope(css, "sc_test", false);
+    // Verify all parts are correctly scoped
+    assert!(scoped.scoped.contains("div[data-scope=\"sc_test\"]"));
+    assert!(scoped.scoped.contains(".sc_test_parent"));
+    assert!(scoped.scoped.contains("span[data-scope=\"sc_test\"]"));
+    assert!(scoped.scoped.contains(".sc_test_child"));
+}
+```
+
 ## Documentation
 
 ### Building Docs
@@ -194,27 +264,107 @@ cargo doc --no-deps --all-features 2>&1 | grep warning
 - Return value documentation
 - Error condition documentation
 
+### Example Documentation Format
+
+```rust
+/// Scopes a CSS selector with a unique prefix.
+///
+/// # Arguments
+///
+/// * `selector` - The CSS selector to scope (e.g., ".button")
+/// * `scope` - The unique scope prefix (e.g., "sc_abc123")
+/// * `class_names` - HashSet to track discovered class names
+///
+/// # Returns
+///
+/// A scoped CSS selector string
+///
+/// # Examples
+///
+/// ```
+/// use dioxus_style_macro::style_parser::scope_selector;
+/// use std::collections::HashSet;
+///
+/// let mut classes = HashSet::new();
+/// let scoped = scope_selector(".btn", "sc_test", &mut classes);
+/// assert_eq!(scoped, ".sc_test_btn");
+/// ```
+pub fn scope_selector(
+    selector: &str, 
+    scope: &str, 
+    class_names: &mut HashSet<String>
+) -> String {
+    // Implementation
+}
+```
+
 ## Release Process
 
 (For maintainers)
 
 1. Update version numbers in all `Cargo.toml` files
-2. Update `CHANGELOG.md`
-3. Update documentation
-4. Run full test suite
-5. Create git tag: `git tag -a v0.1.0 -m "Release v0.1.0"`
-6. Push tag: `git push origin v0.1.0`
-7. Publish to crates.io:
+2. Update `CHANGELOG.md` with new version
+3. Update documentation and examples
+4. Run full test suite: `cargo test --all`
+5. Check formatting: `cargo fmt --all -- --check`
+6. Run clippy: `cargo clippy --all-targets --all-features -- -D warnings`
+7. Create git tag: `git tag -a v0.2.0 -m "Release v0.2.0"`
+8. Push tag: `git push origin v0.2.0`
+9. Publish to crates.io:
    ```bash
    cd dioxus_style_macro && cargo publish
+   # Wait a few minutes
    cd ../dioxus_style && cargo publish
    ```
+
+## Areas for Contribution
+
+Here are some areas where contributions would be especially welcome:
+
+### High Priority
+- [ ] Support for CSS nesting syntax
+- [ ] Better pseudo-element scoping
+- [ ] Universal selector (`*`) scoping strategy
+- [ ] Performance benchmarks
+- [ ] More comprehensive examples
+
+### Medium Priority
+- [ ] CSS preprocessor integration (SCSS, LESS)
+- [ ] Source maps for debugging
+- [ ] Animation keyframe scoping
+- [ ] Media query optimization
+- [ ] CSS variables scoping
+
+### Low Priority
+- [ ] Plugin system for custom transformations
+- [ ] IDE integration helpers
+- [ ] Visual regression testing
+- [ ] Performance profiling tools
 
 ## Getting Help
 
 - **GitHub Issues**: For bugs and feature requests
 - **Discussions**: For questions and general discussion
 - **Discord**: Join the Dioxus community server
+
+## Code Review Process
+
+All contributions go through code review. Reviewers will check for:
+
+- **Correctness**: Does the code work as intended?
+- **Tests**: Are there adequate tests?
+- **Documentation**: Is the code well-documented?
+- **Style**: Does it follow Rust conventions?
+- **Performance**: Are there any performance concerns?
+- **Breaking Changes**: Are they necessary and well-documented?
+
+## Version Policy
+
+We follow [Semantic Versioning](https://semver.org/):
+
+- **Patch (0.2.x)**: Bug fixes, documentation
+- **Minor (0.x.0)**: New features, non-breaking changes
+- **Major (x.0.0)**: Breaking API changes
 
 ## License
 
@@ -226,5 +376,12 @@ Contributors will be acknowledged in:
 - GitHub contributors list
 - Release notes
 - Project documentation
+
+## Questions?
+
+If you have questions about contributing, feel free to:
+- Open a GitHub Discussion
+- Ask in the Dioxus Discord server
+- Email the maintainers
 
 Thank you for contributing to dioxus_style! 🎉
