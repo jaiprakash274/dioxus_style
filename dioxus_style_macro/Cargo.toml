@@ -1,0 +1,52 @@
+[package]
+name = "dioxus_style_macro"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+description = "Procedural macros for dioxus_style with SCSS/SASS compilation support - internal use only"
+readme = "../README.md"
+keywords = ["dioxus", "css", "scss", "scoped", "macro"]
+categories = ["web-programming", "development-tools::procedural-macro-helpers"]
+rust-version.workspace = true
+
+[lib]
+proc-macro = true
+
+[dependencies]
+proc-macro2 = "1.0"
+quote = "1.0"
+syn = { version = "2.0", features = ["full", "extra-traits"] }
+xxhash-rust = { version = "0.8", features = ["xxh3"] }
+# SCSS compiler (optional, enabled by default)
+grass = { version = "0.13", optional = true }
+
+[dev-dependencies]
+# Add test dependencies here if needed
+
+[features]
+default = ["scss"]
+scss = ["grass"]  # Enable SCSS/SASS support
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
+
+# What to include in the published package
+include = [
+    "src/**/*",
+    "Cargo.toml",
+    "../README.md",
+    "../LICENSE-MIT",
+    "../LICENSE-APACHE",
+]
+
+# Exclude these from the published package
+exclude = [
+    "../PUBLISHING_CHECKLIST.md",
+    "../.github/",
+    "../examples/",
+]
