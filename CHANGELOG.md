@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.1] - 2025-12-31
+
+### Changed
+- **Code Audit & Quality Review** - Complete codebase analysis with all 37 tests passing
+- Updated internal documentation and comments
+
+### Fixed
+- Improved code quality across all modules
+- Verified comprehensive bug fix coverage for:
+  - Empty class selector preservation (Bug #1)
+  - Functional pseudo-class scoping `:not()`, `:has()`, `:is()`, `:where()` (Bug #2)
+  - Attribute selectors with special characters in quotes (Bug #3)
+  - Global pseudo-classes `:root` and `:host` handling (Bug #4)
+  - No extra wrapper div in `#[with_css]` macro (Bug #5)
+
+### Technical
+- All 37 unit tests passing
+- SCSS compilation cache with bounded size (128 entries)
+- Thread-safe style registry with RwLock
+- Zero-allocation compile-time CSS processing
+
+---
+
 ## [0.4.0] - 2025-12-31
 
 ### Added

@@ -6,12 +6,49 @@
 use std::collections::HashMap;
 use std::sync::{OnceLock, RwLock};
 
+/// Maximum number of cached SCSS compilations.
+/// Prevents unbounded memory growth during long compilation sessions.
+const MAX_CACHE_SIZE: usize = 128;
+
 /// Cache for compiled SCSS → CSS to avoid redundant compilations.
 /// Key is the SCSS content hash, value is the compiled CSS.
-static SCSS_CACHE: OnceLock<RwLock<HashMap<u64, String>>> = OnceLock::new();
+static SCSS_CACHE: OnceLock<RwLock<ScssCache>> = OnceLock::new();
 
-fn get_cache() -> &'static RwLock<HashMap<u64, String>> {
-    SCSS_CACHE.get_or_init(|| RwLock::new(HashMap::with_capacity(32)))
+/// SCSS cache with size tracking for bounded growth.
+struct ScssCache {
+    entries: HashMap<u64, String>,
+    insertion_order: Vec<u64>, // For LRU-like eviction
+}
+
+impl ScssCache {
+    fn new() -> Self {
+        Self {
+            entries: HashMap::with_capacity(32),
+            insertion_order: Vec::with_capacity(32),
+        }
+    }
+
+    fn get(&self, key: &u64) -> Option<&String> {
+        self.entries.get(key)
+    }
+
+    fn insert(&mut self, key: u64, value: String) {
+        // Evict oldest entries if cache is full
+        while self.entries.len() >= MAX_CACHE_SIZE && !self.insertion_order.is_empty() {
+            if let Some(oldest_key) = self.insertion_order.first().copied() {
+                self.entries.remove(&oldest_key);
+                self.insertion_order.remove(0);
+            }
+        }
+
+        if self.entries.insert(key, value).is_none() {
+            self.insertion_order.push(key);
+        }
+    }
+}
+
+fn get_cache() -> &'static RwLock<ScssCache> {
+    SCSS_CACHE.get_or_init(|| RwLock::new(ScssCache::new()))
 }
 
 /// Simple hash function for cache key.
@@ -44,9 +81,8 @@ pub fn compile_scss_to_css(
 
     let cache_key = hash_content(content, minify);
     
-    // Check cache first
-    {
-        let cache = get_cache().read().unwrap();
+    // Check cache first (graceful handling if lock poisoned)
+    if let Ok(cache) = get_cache().read() {
         if let Some(cached) = cache.get(&cache_key) {
             return Ok(cached.clone());
         }
@@ -67,9 +103,8 @@ pub fn compile_scss_to_css(
         }
     })?;
 
-    // Store in cache
-    {
-        let mut cache = get_cache().write().unwrap();
+    // Store in cache (graceful handling if lock poisoned)
+    if let Ok(mut cache) = get_cache().write() {
         cache.insert(cache_key, result.clone());
     }
 

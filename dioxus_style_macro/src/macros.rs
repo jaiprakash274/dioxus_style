@@ -124,19 +124,21 @@ pub fn scoped_style_impl(input: TokenStream) -> TokenStream {
 }
 
 /// Implementation of the `css!` macro for inline styles.
+/// Creates a utility class with the scope prefix format.
 pub fn css_impl(input: TokenStream) -> TokenStream {
     let input_str = parse_macro_input!(input as LitStr);
     let css_content = input_str.value();
 
     let scope = generate_hash(&css_content, None);
-    let wrapped_css = format!(".{} {{ {} }}", scope, css_content);
+    
+    // Create a properly scoped class: .scope_inline { ... }
+    let class_name = format!("{}_inline", scope);
+    let wrapped_css = format!(".{} {{ {} }}", class_name, css_content);
 
+    // Always run through scoping for consistency (handles minification too)
     let minify = cfg!(not(debug_assertions));
-    let final_css = if minify {
-        crate::style_parser::parse_and_scope(&wrapped_css, &scope, true).scoped
-    } else {
-        wrapped_css
-    };
+    let scoped = crate::style_parser::parse_and_scope(&wrapped_css, &scope, minify);
+    let final_css = scoped.scoped;
 
     let expanded = quote! {
         {

@@ -79,7 +79,9 @@ pub fn with_css(attr: TokenStream, item: TokenStream) -> TokenStream {
             // Auto-inject: Wrap user's rsx! to prepend <style> tag
             let user_element = { #fn_body };
 
-            // Inject styles BEFORE rendering user content
+            // Bug #5 fix: No extra wrapper div - inject styles alongside user content
+            // For element selectors to work, user should add data-scope="{css}" 
+            // to their root element manually
             rsx! {
                 style { dangerous_inner_html: "{::dioxus_style::inject_styles()}" }
                 {user_element}

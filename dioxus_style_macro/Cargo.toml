@@ -25,7 +25,8 @@ xxhash-rust = { version = "0.8", features = ["xxh3"] }
 grass = { version = "0.13", optional = true }
 
 [dev-dependencies]
-# Add test dependencies here if needed
+criterion = "0.5"
+xxhash-rust = { version = "0.8", features = ["xxh3"] }
 
 [features]
 default = ["scss"]

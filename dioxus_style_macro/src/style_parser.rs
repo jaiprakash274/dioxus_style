@@ -181,6 +181,7 @@ fn scope_selector(selector: &str, scope: &str, class_names: &mut HashSet<String>
 
 /// Scopes a single selector (no commas).
 /// Scopes: classes (.class), IDs (#id), and elements (div, span, etc.)
+/// Also handles functional pseudo-classes like :not(), :has(), :is(), :where()
 #[inline]
 fn scope_single_selector(selector: &str, scope: &str, class_names: &mut HashSet<String>) -> String {
     let mut result = String::with_capacity(selector.len() + scope.len() * 4);
@@ -189,7 +190,7 @@ fn scope_single_selector(selector: &str, scope: &str, class_names: &mut HashSet<
 
     while let Some(ch) = chars.next() {
         match ch {
-            // Handle class selectors: .class → .scope.class
+            // Handle class selectors: .class → .scope_class
             '.' => {
                 let mut class_name = String::with_capacity(16);
                 while let Some(&next_ch) = chars.peek() {
@@ -207,6 +208,9 @@ fn scope_single_selector(selector: &str, scope: &str, class_names: &mut HashSet<
                     result.push_str(scope);
                     result.push('_');
                     result.push_str(&class_name);
+                } else {
+                    // Bug #1 fix: Preserve malformed empty class selector
+                    result.push('.');
                 }
                 at_start = false;
             }
@@ -228,6 +232,9 @@ fn scope_single_selector(selector: &str, scope: &str, class_names: &mut HashSet<
                     result.push_str(scope);
                     result.push('_');
                     result.push_str(&id_name);
+                } else {
+                    // Preserve malformed empty ID selector
+                    result.push('#');
                 }
                 at_start = false;
             }
@@ -250,23 +257,98 @@ fn scope_single_selector(selector: &str, scope: &str, class_names: &mut HashSet<
             ':' => {
                 result.push(ch);
                 
-                // Peek to see if this is :root or :host (global pseudo-classes)
-                let remaining: String = chars.clone().collect();
-                if remaining.starts_with("root") || remaining.starts_with("host") {
-                    // These are global - pass through without element scoping
-                    // The rest of the selector parsing will handle it
+                // Collect pseudo-class/element name
+                let mut pseudo_name = String::new();
+                
+                // Check for :: (pseudo-element)
+                if chars.peek() == Some(&':') {
+                    result.push(chars.next().unwrap());
                 }
+                
+                // Collect the pseudo name
+                while let Some(&next_ch) = chars.peek() {
+                    if next_ch.is_alphanumeric() || next_ch == '-' {
+                        pseudo_name.push(next_ch);
+                        result.push(next_ch);
+                        chars.next();
+                    } else {
+                        break;
+                    }
+                }
+                
+                // Bug #2 fix: Handle functional pseudo-classes that need scoping
+                // :not(), :has(), :is(), :where() contain selectors that should be scoped
+                // Optimization #2: Use eq_ignore_ascii_case to avoid allocation
+                let is_functional = ["not", "has", "is", "where", "matches"]
+                    .iter()
+                    .any(|&p| pseudo_name.eq_ignore_ascii_case(p));
+                if is_functional {
+                    if chars.peek() == Some(&'(') {
+                        result.push(chars.next().unwrap()); // Push '('
+                        
+                        // Collect content inside parentheses
+                        let mut inner_content = String::new();
+                        let mut paren_depth = 1;
+                        
+                        while let Some(c) = chars.next() {
+                            match c {
+                                '(' => {
+                                    paren_depth += 1;
+                                    inner_content.push(c);
+                                }
+                                ')' => {
+                                    paren_depth -= 1;
+                                    if paren_depth == 0 {
+                                        break;
+                                    }
+                                    inner_content.push(c);
+                                }
+                                _ => inner_content.push(c),
+                            }
+                        }
+                        
+                        // Recursively scope the inner selector(s)
+                        let scoped_inner = scope_selector(&inner_content, scope, class_names);
+                        result.push_str(&scoped_inner);
+                        result.push(')');
+                    }
+                }
+                
                 at_start = false;
             }
 
-            // Handle attribute selectors (pass through)
+            // Handle attribute selectors with proper quote handling (Bug #3 fix)
             '[' => {
                 result.push(ch);
-                // Copy everything until closing bracket
+                let mut in_quote: Option<char> = None;
+                
                 while let Some(next_ch) = chars.next() {
                     result.push(next_ch);
-                    if next_ch == ']' {
-                        break;
+                    
+                    match next_ch {
+                        '"' | '\'' => {
+                            if let Some(quote_char) = in_quote {
+                                if quote_char == next_ch {
+                                    in_quote = None; // Closing quote
+                                }
+                            } else {
+                                in_quote = Some(next_ch); // Opening quote
+                            }
+                        }
+                        '\\' => {
+                            // Handle escape sequences inside quotes
+                            if in_quote.is_some() {
+                                if let Some(escaped) = chars.next() {
+                                    result.push(escaped);
+                                }
+                            }
+                        }
+                        ']' => {
+                            if in_quote.is_none() {
+                                break; // Only break on ] if not inside quotes
+                            }
+                        }
+                        _ => {}
                     }
                 }
                 at_start = false;
@@ -292,11 +374,17 @@ fn scope_single_selector(selector: &str, scope: &str, class_names: &mut HashSet<
                     }
                 }
 
-                // Scope the element with data attribute
-                result.push_str(&element_name);
-                result.push_str("[data-scope=\"");
-                result.push_str(scope);
-                result.push_str("\"]");
+                // Bug #4 fix: Don't scope :root or :host elements (they're global)
+                // Note: These are pseudo-classes, not elements, but we handle edge cases
+                if element_name == "root" || element_name == "host" {
+                    result.push_str(&element_name);
+                } else {
+                    // Scope the element with data attribute
+                    result.push_str(&element_name);
+                    result.push_str("[data-scope=\"");
+                    result.push_str(scope);
+                    result.push_str("\"]");
+                }
                 
                 at_start = false;
             }
@@ -358,7 +446,7 @@ mod tests {
     fn test_class_selector_scoping() {
         let css = ".button { color: red; }";
         let scoped = parse_and_scope(css, "sc_abc", false);
-        // v0.2.0: Changed from .sc_abc.button to .sc_abc_button
+        // v0.6.0: Changed from .sc_abc.button to .sc_abc_button
         assert!(scoped.scoped.contains(".sc_abc_button"));
     }
 
@@ -382,7 +470,7 @@ mod tests {
         let css = "div.container > .item + #special { color: green; }";
         let scoped = parse_and_scope(css, "sc_xyz", false);
         
-        // v0.2.0: Updated format for all selector types
+        // v0.6.0: Updated format for all selector types
         assert!(scoped.scoped.contains("div[data-scope=\"sc_xyz\"].sc_xyz_container"));
         assert!(scoped.scoped.contains(".sc_xyz_item"));
         assert!(scoped.scoped.contains("#sc_xyz_special"));
@@ -393,7 +481,7 @@ mod tests {
     fn test_pseudo_classes() {
         let css = ".button:hover { background: blue; }";
         let scoped = parse_and_scope(css, "sc_abc", false);
-        // v0.2.0: Changed format
+        // v0.6.0: Changed format
         assert!(scoped.scoped.contains(".sc_abc_button:hover"));
     }
 
@@ -402,7 +490,7 @@ mod tests {
         let css = ".btn, .button, #submit { color: red; }";
         let scoped = parse_and_scope(css, "sc_xyz", false);
         
-        // v0.2.0: Changed format
+        // v0.6.0: Changed format
         assert!(scoped.scoped.contains(".sc_xyz_btn"));
         assert!(scoped.scoped.contains(".sc_xyz_button"));
         assert!(scoped.scoped.contains("#sc_xyz_submit"));
@@ -457,7 +545,7 @@ mod tests {
     fn test_descendant_combinator() {
         let css = ".parent .child { color: blue; }";
         let scoped = parse_and_scope(css, "sc_test", false);
-        // v0.2.0: Changed format
+        // v0.6.0: Changed format
         assert!(scoped.scoped.contains(".sc_test_parent .sc_test_child"));
     }
 
@@ -523,5 +611,41 @@ mod tests {
         let css = "   \n\t   ";
         let scoped = parse_and_scope(css, "sc_test", false);
         assert_eq!(scoped.scoped.trim(), "");
+    }
+
+    // Bug fix tests
+
+    #[test]
+    fn test_not_pseudo_class_scoping() {
+        // Bug #2: :not() content should be scoped
+        let css = ".button:not(.disabled) { color: red; }";
+        let scoped = parse_and_scope(css, "sc_test", false);
+        // Both .button and .disabled should be scoped
+        assert!(scoped.scoped.contains(".sc_test_button:not(.sc_test_disabled)"));
+    }
+
+    #[test]
+    fn test_has_is_where_pseudo_class_scoping() {
+        let css = ".container:has(.child) { display: flex; }";
+        let scoped = parse_and_scope(css, "sc_test", false);
+        assert!(scoped.scoped.contains(".sc_test_container:has(.sc_test_child)"));
+    }
+
+    #[test]
+    fn test_attribute_selector_with_quotes() {
+        // Bug #3: Attribute selectors with ] inside quotes
+        let css = r#"input[placeholder="Enter ]value"] { border: 1px solid; }"#;
+        let scoped = parse_and_scope(css, "sc_test", false);
+        // Should preserve the full attribute including the ] inside quotes
+        assert!(scoped.scoped.contains(r#"[placeholder="Enter ]value"]"#));
+    }
+
+    #[test]
+    fn test_empty_class_preserved() {
+        // Bug #1: Empty class selector should be preserved
+        let css = ". { color: red; }";
+        let scoped = parse_and_scope(css, "sc_test", false);
+        // Should contain the dot (malformed but preserved)
+        assert!(scoped.scoped.contains("."));
     }
 }

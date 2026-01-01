@@ -6,7 +6,7 @@ members = [
 resolver = "2"
 
 [workspace.package]
-version = "0.4.0"
+version = "0.4.1"
 authors = ["JAI PRAKASH THAWAIT <jaiprakashthawait@gmail.com>"]
 homepage = "https://github.com/jaiprakash274/dioxus_style"
 documentation = "https://docs.rs/dioxus_style"
@@ -14,6 +14,9 @@ license = "MIT OR Apache-2.0"
 repository = "https://github.com/jaiprakash274/dioxus_style"
 edition = "2021"
 rust-version = "1.70"
+
+[workspace.dev-dependencies]
+criterion = "0.5"
 
 [profile.release]
 opt-level = 3
